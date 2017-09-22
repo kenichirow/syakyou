@@ -1,33 +1,47 @@
 import React, { Component } from 'react';
 import './App.css';
 
+
+function calculateWinner(squares) {
+  const lines = [
+          [0, 1, 2],
+          [3, 4, 5],
+          [6, 7, 8],
+          [0, 3, 6],
+          [1, 4, 7],
+          [2, 5, 8],
+          [0, 4, 8],
+          [2, 4, 6],
+        ];
+
+  for (let i = 0; i < lines.length; i++) {
+          const [a, b, c] = lines[i];
+          if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+                    return squares[a];
+                  }
+        }
+  return null;
+}
+
+
 class Board extends Component {
     constructor () {
         super();
         this.state = {
             squares: Array(9).fill(null),
+            xIsNext: true,
         };
     }
 
-    handleClick(i) {
-        console.log(this.state.squares)
-        const new_squares = this.state.squares.slice();
-        new_squares[i] = 'X';
-        this.setState({squares: new_squares});
-    }
 
     renderSquare(i) {
-        return <Square value={this.state.squares[i]}
-                onClick={() => this.handleClick(i)}
+        return <Square value={this.props.squares[i]}
+                onClick={() => this.props.onClick(i)}
             />;
     }
 
     render() {
-        const status = "Next Paleyer: X";
-
-        return (
-            <div>
-             <div className="status">{status}</div>
+        return (<div> <div className="status"></div>
                 <div className="board-row">
                     {this.renderSquare(0)}
                     {this.renderSquare(1)}
@@ -48,6 +62,7 @@ class Board extends Component {
     }
 }
 
+
 function Square(props) {
     return (
         <button className="square" onClick={() => props.onClick()}>
@@ -57,22 +72,73 @@ function Square(props) {
 }
     
 
-
 class App extends Component {
-  render() {
-    return (
-      <div className="game">
-        <div className="game-board">
-            <Board />
-        </div>
-        <div className="game-info">
-            <div></div>
-            <ol>
-            </ol>
-        </div>
-      </div>
-    );
-  }
+    constructor () {
+        super();
+        this.state = {
+            history: [{
+                squares: Array(9).fill(null),
+            }],
+            stepNumber: 0,
+            xIsNext: true,
+        };
+    }
+
+    jumpTo(step) {
+        this.setState({
+            stepNumber: step,
+            xIsNext: (step % 2) === 0,
+        });
+    }
+
+    handleClick(i) {
+        const history = this.state.history.slice(0, this.state.stepNumber + 1);
+        const current = history[history.length - 1];
+        const new_squares = current.squares.slice();
+        ///const new_squares = this.state.squares.slice();
+        if (calculateWinner(new_squares) || new_squares[i]) {
+            return;
+        }
+        new_squares[i] = this.state.xIsNext ? 'X' : 'O';
+        this.setState({
+            history: history.concat([{
+                squares: new_squares,
+            }]),
+            stepNumber: history.length,
+            xIsNext: !this.state.xIsNext,
+        });
+    }
+
+    render() {
+        const history = this.state.history;
+        const current = history[this.state.stepNumber];
+        const winner = calculateWinner(current.squares);
+
+        const moves = history.map((step, move) => {
+            const desc = move ? "Move # " + move : "Game start";
+            return (<li key={move}> <a href="#" onClick={()=> this.jumpTo(move)}>{desc}</a></li>);
+        });
+
+        let status;
+        if (winner) {
+            status = 'Winner: ' + winner;
+        }else{
+            status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
+        }
+        return (
+          <div className="game">
+            <div className="game-board">
+                <Board squares={current.squares}
+                onClick={(i) => this.handleClick(i)}
+            />
+            </div>
+            <div className="game-info">
+                <div>{status}</div>
+                <ol> {moves} </ol>
+            </div>
+          </div>
+        );
+    }
 }
 
 export default App;
